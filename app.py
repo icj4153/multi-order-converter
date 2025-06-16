@@ -41,7 +41,6 @@ def convert():
     uiseong_template_file = request.files['uiseong_template']
 
     df = pd.read_excel(delivery_file)
-    # 컬럼명 공백 제거 처리
     df.columns = df.columns.str.replace(' ', '')
 
     required_columns = ["수취인이름", "구매자전화번호", "우편번호", "등록옵션명", "구매수(수량)", "등록상품명"]
@@ -49,6 +48,8 @@ def convert():
     if missing:
         return f"❌ DeliveryList에 필요한 컬럼이 없습니다: {', '.join(missing)}", 400
 
+    df.columns.tolist()
+  
     df["수취인명"] = df["수취인이름"]
     df["수취인전화번호"] = df["구매자전화번호"]
     df["수취인이동통신"] = df["구매자전화번호"]
@@ -62,20 +63,29 @@ def convert():
 
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, 'w') as zip_buffer:
-        # 공통 품목
+        def write_rows(ws, start_row, row):
+            ws.cell(row=start_row, column=1).value = row['주문번호']
+            ws.cell(row=start_row, column=2).value = row['주문상품명']
+            ws.cell(row=start_row, column=3).value = row['상품모델']
+            ws.cell(row=start_row, column=4).value = row['수량']
+            ws.cell(row=start_row, column=5).value = row['수취인명']
+            ws.cell(row=start_row, column=6).value = row['수취인우편번호']
+            ws.cell(row=start_row, column=7).value = row['수취인주소'] if '수취인주소' in row else ''
+            ws.cell(row=start_row, column=8).value = row['수취인전화번호']
+            ws.cell(row=start_row, column=9).value = row['수취인이동통신']
+            ws.cell(row=start_row, column=10).value = row['배송메세지'] if '배송메세지' in row else ''
+            ws.cell(row=start_row, column=11).value = row.get('상품코드', '')
+            ws.cell(row=start_row, column=12).value = row.get('주문자명', '')
+            ws.cell(row=start_row, column=13).value = 1  # 박스단위 기본값
+            ws.cell(row=start_row, column=14).value = 60  # 부피단위 기본값
+
         common_df = df[df['등록상품명'].str.contains('|'.join(common_keywords), na=False)]
         if not common_df.empty:
             wb = openpyxl.load_workbook(common_template_file)
             ws = wb.active
             start_row = 2
             for _, row in common_df.iterrows():
-                ws.cell(row=start_row, column=1).value = row['수취인명']
-                ws.cell(row=start_row, column=2).value = row['수취인전화번호']
-                ws.cell(row=start_row, column=3).value = row['수취인이동통신']
-                ws.cell(row=start_row, column=4).value = row['수취인우편번호']
-                ws.cell(row=start_row, column=5).value = row['주문상품명']
-                ws.cell(row=start_row, column=6).value = row['상품모델']
-                ws.cell(row=start_row, column=7).value = row['수량']
+                write_rows(ws, start_row, row)
                 start_row += 1
             temp = BytesIO()
             today = datetime.datetime.now().strftime('%y%m%d')
@@ -83,20 +93,13 @@ def convert():
             temp.seek(0)
             zip_buffer.writestr(f"공통발주서_{today}.xlsx", temp.read())
 
-        # 의성 품목
         uiseong_df = df[df['등록상품명'].str.contains(uiseong_keyword, na=False)]
         if not uiseong_df.empty:
             wb = openpyxl.load_workbook(uiseong_template_file)
             ws = wb.active
             start_row = 2
             for _, row in uiseong_df.iterrows():
-                ws.cell(row=start_row, column=1).value = row['수취인명']
-                ws.cell(row=start_row, column=2).value = row['수취인전화번호']
-                ws.cell(row=start_row, column=3).value = row['수취인이동통신']
-                ws.cell(row=start_row, column=4).value = row['수취인우편번호']
-                ws.cell(row=start_row, column=5).value = row['주문상품명']
-                ws.cell(row=start_row, column=6).value = row['상품모델']
-                ws.cell(row=start_row, column=7).value = row['수량']
+                write_rows(ws, start_row, row)
                 start_row += 1
             temp = BytesIO()
             today = datetime.datetime.now().strftime('%y%m%d')
