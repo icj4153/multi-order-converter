@@ -4,6 +4,7 @@ import openpyxl
 from io import BytesIO
 import datetime
 import zipfile
+import os
 
 app = Flask(__name__)
 
@@ -41,7 +42,15 @@ def convert():
 
     df = pd.read_excel(delivery_file)
 
-    # 분류 기준
+    # 매핑 로직 적용
+    df["수취인명"] = df["수취인이름"]
+    df["수취인 전화번호"] = df["구매자 전화번호"]
+    df["수취인 이동통신"] = df["구매자 전화번호"]
+    df["수취인 우편번호"] = df["우편번호"]
+    df["주문상품명"] = df["등록 옵션명"]
+    df["상품모델"] = df["등록 옵션명"]
+    df["수량"] = df["구매수(수량)"]
+
     common_keywords = ["천도복숭아", "신비복숭아", "신틸라"]
     uiseong_keyword = "의성 프리미엄 신비복숭아"
 
@@ -53,13 +62,14 @@ def convert():
             wb = openpyxl.load_workbook(common_template_file)
             ws = wb.active
             start_row = 2
-            for i, row in common_df.iterrows():
-                ws.cell(row=start_row, column=1).value = row['수취인 이름']
-                ws.cell(row=start_row, column=2).value = row['수취인전화번호']
-                ws.cell(row=start_row, column=3).value = row['수취인 주소']
-                ws.cell(row=start_row, column=4).value = row['등록옵션명']
-                ws.cell(row=start_row, column=5).value = row['구매수(수량)']
-                ws.cell(row=start_row, column=6).value = row['배송메세지']
+            for _, row in common_df.iterrows():
+                ws.cell(row=start_row, column=1).value = row['수취인명']
+                ws.cell(row=start_row, column=2).value = row['수취인 전화번호']
+                ws.cell(row=start_row, column=3).value = row['수취인 이동통신']
+                ws.cell(row=start_row, column=4).value = row['수취인 우편번호']
+                ws.cell(row=start_row, column=5).value = row['주문상품명']
+                ws.cell(row=start_row, column=6).value = row['상품모델']
+                ws.cell(row=start_row, column=7).value = row['수량']
                 start_row += 1
             temp = BytesIO()
             today = datetime.datetime.now().strftime('%y%m%d')
@@ -73,13 +83,14 @@ def convert():
             wb = openpyxl.load_workbook(uiseong_template_file)
             ws = wb.active
             start_row = 2
-            for i, row in uiseong_df.iterrows():
-                ws.cell(row=start_row, column=1).value = row['수취인 이름']
-                ws.cell(row=start_row, column=2).value = row['수취인전화번호']
-                ws.cell(row=start_row, column=3).value = row['수취인 주소']
-                ws.cell(row=start_row, column=4).value = row['등록옵션명']
-                ws.cell(row=start_row, column=5).value = row['구매수(수량)']
-                ws.cell(row=start_row, column=6).value = row['배송메세지']
+            for _, row in uiseong_df.iterrows():
+                ws.cell(row=start_row, column=1).value = row['수취인명']
+                ws.cell(row=start_row, column=2).value = row['수취인 전화번호']
+                ws.cell(row=start_row, column=3).value = row['수취인 이동통신']
+                ws.cell(row=start_row, column=4).value = row['수취인 우편번호']
+                ws.cell(row=start_row, column=5).value = row['주문상품명']
+                ws.cell(row=start_row, column=6).value = row['상품모델']
+                ws.cell(row=start_row, column=7).value = row['수량']
                 start_row += 1
             temp = BytesIO()
             today = datetime.datetime.now().strftime('%y%m%d')
@@ -92,6 +103,5 @@ def convert():
                      mimetype="application/zip")
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
